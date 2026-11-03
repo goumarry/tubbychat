@@ -1,0 +1,80 @@
+# TubbyChat — tout démarre avec : docker compose up --build
+#   Application : http://localhost:8090
+#   Grafana     : http://localhost:3001   (tableau de bord « TubbyChat temps réel »)
+#   Prometheus  : http://localhost:9090
+
+x-api: &api
+  build: ./server
+  restart: unless-stopped
+  depends_on:
+    redis: { condition: service_healthy }
+  environment: &api-env
+    REDIS_URL: redis://redis:6379
+    ALLOWED_ORIGINS: http://localhost:8090,http://127.0.0.1:8090,http://localhost:5173
+    TRUST_PROXY: "1"
+    SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-900}
+    BATCH_MS: ${BATCH_MS:-0}
+    MAX_CONN_PER_IP: ${MAX_CONN_PER_IP:-50}
+    ADMIN_USERS: admin
+
+services:
+  web:
+    build: ./client
+    restart: unless-stopped
+    ports: ["8090:80"]
+    depends_on: [api-1, api-2]
+
+  api-1:
+    <<: *api
+    environment:
+      <<: *api-env
+      INSTANCE_ID: api-1
+
+  api-2:
+    <<: *api
+    environment:
+      <<: *api-env
+      INSTANCE_ID: api-2
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      retries: 20
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    restart: unless-stopped
+    volumes: ["./infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    restart: unless-stopped
+    depends_on: [prometheus]
+    volumes: ["./infra/grafana:/etc/grafana/provisioning:ro"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/tubbychat.json
+    ports: ["3001:3000"]
+
+  # Test de charge (non lancé par défaut) :
+  #   MAX_CONN_PER_IP=100000 docker compose up -d
+  #   docker compose --profile charge run --rm k6
+  k6:
+    image: grafana/k6:0.54.0
+    profiles: ["charge"]
+    # pas de depends_on : « run » ne doit pas recréer les instances avec un autre quota
+    volumes: ["./load:/scripts"]
+    environment:
+      BASE: http://web
+    command: ["run", "--summary-export=/scripts/resultats/summary.json", "/scripts/chat.js"]
+
+volumes:
+  redis-data:

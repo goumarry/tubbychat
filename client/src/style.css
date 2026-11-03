@@ -1,0 +1,67 @@
+/* TubbyChat — un ciel, des collines, et quatre couleurs de Tubby. Thème clair assumé. */
+:root {
+  --violet: #7E57C2;  --violet-d: #5E35B1;
+  --vert: #43A047;    --vert-d: #2E7D32;
+  --jaune: #FDD835;   --jaune-d: #C79A00;
+  --rouge: #E53935;   --rouge-d: #C62828;
+  --bleu: #29B6F6;    --bleu-d: #0288D1;
+  --ciel-haut: #74C4EE;
+  --ciel-bas: #D4F1FF;
+  --herbe: #9CCC65;   --herbe-d: #7CB342;
+  --ecran: #F3F6F8;   --ecran-bord: #B0BEC5;
+  --peau: #F8D9BC;
+  --ink: #2B2A4C;
+  --muted: #6B6A8A;
+  --panel: rgba(255, 255, 255, 0.9);
+  --f-title: "Fredoka", "Comic Sans MS", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font: 16px/1.5 var(--f-body);
+  color: var(--ink);
+  background: var(--ciel-bas);
+  overflow: hidden;
+}
+#app { height: 100%; }
+h1, h2, h3 { font-family: var(--f-title); margin: 0; line-height: 1.15; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; border-radius: 8px; }
+
+.btn {
+  font-family: var(--f-title);
+  font-weight: 600;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 20px;
+  background: var(--violet);
+  color: white;
+  box-shadow: 0 4px 0 var(--violet-d);
+  transition: transform .1s, box-shadow .1s, filter .2s;
+}
+.btn:hover { filter: brightness(1.07); }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--violet-d); }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+.btn.jaune { background: var(--jaune); color: var(--ink); box-shadow: 0 4px 0 var(--jaune-d); }
+.btn.vert { background: var(--vert); box-shadow: 0 4px 0 var(--vert-d); }
+.btn.ghost { background: white; color: var(--ink); box-shadow: 0 3px 0 #d7dce6; }
+
+.panel {
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+  border-radius: 26px;
+  box-shadow: 0 10px 30px -12px rgba(43, 42, 76, .35);
+}
+
+.rainbow span:nth-child(4n+1) { color: var(--violet); }
+.rainbow span:nth-child(4n+2) { color: var(--vert); }
+.rainbow span:nth-child(4n+3) { color: var(--jaune-d); }
+.rainbow span:nth-child(4n+4) { color: var(--rouge); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
