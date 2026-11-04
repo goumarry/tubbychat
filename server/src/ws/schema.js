@@ -1,4 +1,4 @@
-// Contrat de messages client -> serveur (voir ARCHITECTURE.md §5).
+// Contrat de messages client -> serveur (voir rendus/PHASE1.md §4).
 // Validation stricte : type connu, champs attendus, types et formats vérifiés, champs inconnus REFUSÉS.
 const ROOM = v => typeof v === 'string' && /^[a-z0-9-]{1,32}$/.test(v);
 const STREAM_ID = v => typeof v === 'string' && /^\d{1,15}-\d{1,10}$/.test(v);

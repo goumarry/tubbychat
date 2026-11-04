@@ -1,5 +1,5 @@
 // Envoi vers un client, avec contre-pression et regroupement optionnel (BATCH_MS).
-const { BATCH_MS } = require('../config');
+const { BATCH_MS, LOG_MESSAGES } = require('../config');
 const metrics = require('../metrics');
 const log = require('../log');
 
@@ -15,6 +15,7 @@ function deliver(ws, str, type, droppable = false) {
   }
   if (droppable && ws.bufferedAmount > SOFT_LIMIT) return;
   metrics.messages.inc({ direction: 'out', type });
+  if (LOG_MESSAGES) log.info('ws →', { user: ws.user, type, trame: str.length > 300 ? str.slice(0, 300) + '…' : str });
 
   if (!BATCH_MS) return ws.send(str);
   // Regroupement : on accumule pendant BATCH_MS puis on envoie un tableau JSON en une seule trame.

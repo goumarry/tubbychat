@@ -9,7 +9,15 @@ function write(level, event, fields = {}) {
   console.log(JSON.stringify(line));
 }
 
+// Copie d'un objet avec les champs sensibles masqués (ex. le ticket d'un « reauth »).
+function redact(obj) {
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) out[k] = SECRET.test(k) ? '[masqué]' : v;
+  return out;
+}
+
 module.exports = {
+  redact,
   info: (event, fields) => write('info', event, fields),
   warn: (event, fields) => write('warn', event, fields),
   error: (event, fields) => write('error', event, fields),
