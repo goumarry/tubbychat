@@ -4,8 +4,8 @@ Messagerie temps réel avec salons, présence et accusés de lecture, sur la col
 Projet fil rouge — Web temps réel — filière IW.
 
 **Stack** : Node.js + `ws` · Vue 3 + Vite · Redis (pub/sub + Streams) · nginx (2 instances derrière un répartiteur) · Prometheus + Grafana · k6.
-Livrables de la phase 1 (schéma, tableau de décision, contrat de messages) : [`PHASE1.md`](PHASE1.md).
-Architecture détaillée : [`ARCHITECTURE.md`](ARCHITECTURE.md).
+**Tous les rendus** (phases 1 à 6, dossier technique PDF, script vidéo, soutenance, tableau comparatif) sont dans [`rendus/`](rendus/README.md). Le journal d'usage de l'IA est [`USAGE-IA.md`](USAGE-IA.md).
+Architecture détaillée : [`rendus/ARCHITECTURE.md`](rendus/ARCHITECTURE.md).
 
 ## Le sujet
 
@@ -40,7 +40,13 @@ Le compte nommé **`admin`** a le rôle admin et peut entrer dans « Le placard 
 ## Démonstrations, phase par phase
 
 ### Phase 2 : temps réel
-Ouvrez http://localhost:8090 dans **deux navigateurs** (ou une fenêtre normale + une fenêtre privée), créez deux Tubbies et écrivez. Dans les outils de développement, onglet **Réseau → WS → Messages**, les trames correspondent au contrat (`ARCHITECTURE.md` §5).
+Ouvrez http://localhost:8090 dans **deux navigateurs** (ou une fenêtre normale + une fenêtre privée), créez deux Tubbies et écrivez. Dans les outils de développement, onglet **Réseau → WS → Messages**, les trames correspondent au contrat ([`rendus/PHASE1.md`](rendus/PHASE1.md) §4).
+
+Pour voir les trames **côté serveur** (désactivé par défaut) :
+```bash
+LOG_MESSAGES=1 docker compose up -d api-1 api-2
+docker compose logs -f api-1 api-2 | grep "ws "     # ← = reçu du client, → = envoyé au client
+```
 
 ### Phase 3 : sécurité
 ```bash
@@ -70,7 +76,7 @@ Le soleil indique l'instance (« connecté à api-1 » / « api-2 »). Rechargez
 docker compose stop api-1     # les clients d'api-1 reçoivent 1001 et passent sur api-2
 docker compose start api-1
 ```
-**Garantie annoncée** : « au moins une fois » vers les clients, dédoublonnage par id côté client et par `clientMsgId` côté serveur, ordre garanti par salon (`ARCHITECTURE.md` §9.2).
+**Garantie annoncée** : « au moins une fois » vers les clients, dédoublonnage par id côté client et par `clientMsgId` côté serveur, ordre garanti par salon ([`rendus/PHASE4.md`](rendus/PHASE4.md) §4).
 
 ### Phase 5 : charge et mesures
 ```bash
@@ -79,7 +85,7 @@ MAX_CONN_PER_IP=100000 docker compose --profile charge run --rm k6
 MAX_CONN_PER_IP=100000 BATCH_MS=20 docker compose up -d      # optimisation, puis relancer k6
 docker compose up -d                                         # revenir à la configuration normale
 ```
-Pendant le test, regardez Grafana. Les résultats sont dans [`load/RESULTATS.md`](load/RESULTATS.md) : sans optimisation, la dégradation commence vers 580 connexions ; avec le regroupement (20 ms), on dépasse 1000 connexions et le p95 de bout en bout passe de 10,2 s à 143 ms.
+Pendant le test, regardez Grafana. Les résultats sont dans [`rendus/PHASE5.md`](rendus/PHASE5.md) : sans optimisation, la dégradation commence vers 580 connexions ; avec le regroupement (20 ms), on dépasse 1000 connexions et le p95 de bout en bout passe de 10,2 s à 143 ms.
 
 ## Développer le client sans Docker
 
@@ -90,7 +96,7 @@ cd client && npm install && npm run dev    # http://localhost:5173 (proxy vers :
 
 ## Arborescence
 
-Voir `ARCHITECTURE.md` §12.
+Voir [`rendus/ARCHITECTURE.md`](rendus/ARCHITECTURE.md) §12.
 
 ## Images et thème
 

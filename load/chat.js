@@ -16,10 +16,30 @@ const ROOMS = ['colline', 'maison-tubby', 'jardin', 'soleil'];
 const SEND_EVERY_MS = 2000;
 const CONNECTION_MS = 60_000;
 
+// Identifiant propre à CETTE exécution : sans lui, les clientMsgId (k6-VU-ITER-n) seraient identiques d'une
+// exécution à l'autre, et le serveur ignorerait les messages comme doublons pendant 5 min (dedupe NX EX 300).
+const RUN = Date.now().toString(36);
+
 const latency = new Trend('chat_latency', true);
 const received = new Counter('chat_messages_received');
 const sent = new Counter('chat_messages_sent');
 const wsErrors = new Counter('ws_errors');
+
+// Scénario complet (mesures de PHASE5.md) : 3 min 35 s. Scénario « demo » (-e SCENARIO=demo) : 1 min 40 s,
+// pour une démonstration en direct : il passe juste au-dessus du seuil de dégradation (≈ 580 connexions).
+const STAGES = __ENV.SCENARIO === 'demo'
+  ? [
+      { duration: '20s', target: 300 }, { duration: '20s', target: 300 },
+      { duration: '20s', target: 750 }, { duration: '30s', target: 750 },
+      { duration: '10s', target: 0 },
+    ]
+  : [
+      { duration: '20s', target: 100 }, { duration: '30s', target: 100 },
+      { duration: '20s', target: 300 }, { duration: '30s', target: 300 },
+      { duration: '20s', target: 600 }, { duration: '30s', target: 600 },
+      { duration: '20s', target: 1000 }, { duration: '30s', target: 1000 },
+      { duration: '15s', target: 0 },
+    ];
 
 export const options = {
   noCookiesReset: true, // garder le cookie de session d'une itération à l'autre
@@ -27,13 +47,7 @@ export const options = {
     montee: {
       executor: 'ramping-vus',
       startVUs: 0,
-      stages: [
-        { duration: '20s', target: 100 }, { duration: '30s', target: 100 },
-        { duration: '20s', target: 300 }, { duration: '30s', target: 300 },
-        { duration: '20s', target: 600 }, { duration: '30s', target: 600 },
-        { duration: '20s', target: 1000 }, { duration: '30s', target: 1000 },
-        { duration: '15s', target: 0 },
-      ],
+      stages: STAGES,
       gracefulRampDown: '5s',
     },
   },
@@ -66,7 +80,7 @@ export default function () {
     socket.on('open', () => {
       socket.send(JSON.stringify({ type: 'join', room }));
       socket.setInterval(() => {
-        socket.send(JSON.stringify({ type: 'chat', room, text: `k6 ${Date.now()}`, clientMsgId: `k6-${__VU}-${__ITER}-${seq++}` }));
+        socket.send(JSON.stringify({ type: 'chat', room, text: `k6 ${Date.now()}`, clientMsgId: `k6-${RUN}-${__VU}-${__ITER}-${seq++}` }));
         sent.add(1);
       }, SEND_EVERY_MS);
       socket.setTimeout(() => socket.close(), CONNECTION_MS);
