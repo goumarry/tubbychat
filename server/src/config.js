@@ -22,6 +22,9 @@ module.exports = {
   // En HTTPS : cookie Secure + préfixe __Host-. Impossible en HTTP sur localhost.
   SECURE_COOKIES: process.env.SECURE_COOKIES === '1',
 
+  // Journalise chaque trame WebSocket entrante et sortante (debug / démo). Désactivé par défaut : volume + vie privée.
+  LOG_MESSAGES: process.env.LOG_MESSAGES === '1',
+
   LOGIN_TTL_S: 7 * 24 * 3600,                               // session HTTP (cookie)
   SESSION_TTL_S: num(process.env.SESSION_TTL_SECONDS, 900), // session WebSocket avant renouvellement
   TICKET_TTL_S: 30,                                         // ticket à usage unique

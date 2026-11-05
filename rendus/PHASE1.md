@@ -183,6 +183,6 @@ Upgrade: websocket
 
 ## 5. Dépôt Git
 
-- Dépôt : `https://github.com/<compte>/tubbychat` *(à compléter)*
-- Formateur ajouté comme collaborateur : *(à compléter)*
-- Lancement : `docker compose up --build`, puis http://localhost:8090 (voir `README.md`)
+- Dépôt : https://github.com/goumarry/tubbychat (clone SSH : `git@github.com:goumarry/tubbychat.git`)
+- Formateur ajouté comme collaborateur : **Laudroid** (GitHub), invitation envoyée le 4 novembre 2026
+- Lancement : `docker compose up --build`, puis http://localhost:8090 (voir [`README.md`](../README.md))

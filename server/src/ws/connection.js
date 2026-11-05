@@ -117,6 +117,8 @@ function onConnection(ws, identity, ip, origin) {
       return sendError(ws, parsed.code, parsed.message);
     }
 
+    if (cfg.LOG_MESSAGES) log.info('ws ←', { user: ws.user, trame: log.redact(parsed.msg) });
+
     // Les messages d'une même connexion sont traités dans l'ordre d'arrivée.
     ws.chain = ws.chain
       .then(() => handlers[parsed.msg.type](ws, parsed.msg, receivedAt))

@@ -3,7 +3,7 @@
 > Messagerie temps réel avec salons, présence et accusés de lecture, aux couleurs des Télétubbies.
 > Filière IW · Stack : **Node.js + ws** (serveur), **Vue 3 + Vite** (client), **Redis** (broker), **nginx** (répartiteur), **Prometheus + Grafana** (mesures).
 > Tout se lance avec `docker compose up --build` → http://localhost:8090
-> **Statut : implémenté et testé** (voir `README.md` pour le lancement et les démonstrations, `load/RESULTATS.md` pour les mesures).
+> **Statut : implémenté et testé** (voir [`README.md`](../README.md) pour le lancement et les démonstrations, [`PHASE5.md`](PHASE5.md) pour les mesures).
 
 Ce document sert de référence au groupe pendant les 4 jours. Il suit les 6 phases de la fiche projet. Chaque section indique **ce qu'on construit**, **pourquoi**, et **comment le prouver** devant le formateur.
 
@@ -206,9 +206,9 @@ Le code de la démo M6 (`M6/demo/server.js`) est la base directe de cette partie
 | Schéma | message | Validation stricte écrite à la main (`server/src/ws/schema.js`, sans dépendance), champs inconnus refusés | JSON cassé → `error`, la connexion reste ouverte |
 | Autorisation | message | `chat`, `typing` et `read` exigent d'être membre du salon. `from` vient de la session | `chat` dans un salon non rejoint → `not_in_room` |
 | Débit | message | Seau à jetons par connexion : 10 en rafale, 5/s. Au 3e dépassement → 1008 | Rafale de 50 messages |
-| Expiration | connexion | Session de 15 min, `session_expiring` à T-60 s, `reauth`, sinon fermeture 4001 | `SESSION_TTL=30s` en démo |
+| Expiration | connexion | Session de 15 min, `session_expiring` à T-60 s, `reauth`, sinon fermeture 4001 | `SESSION_TTL_SECONDS=60` en démo |
 | Révocation | connexion | `POST /api/logout` → `PUBLISH user:alice revoke` → chaque instance ferme les connexions d'Alice (4003) | Déconnexion dans un onglet → les autres onglets sont coupés |
-| XSS | client | Interpolation Vue `{{ }}`, `v-html` interdit (règle ESLint `vue/no-v-html`) | Message `<img src=x onerror=alert(1)>` affiché en texte |
+| XSS | client | Interpolation Vue `{{ }}`, `v-html` interdit (vérifié à la relecture : aucun `v-html` dans `client/src`) | Message `<img src=x onerror=alert(1)>` affiché en texte |
 | Journaux | serveur | Journaux JSON (`server/src/log.js`), avec masquage automatique des champs `ticket`, `password`, `cookie`, `sid`, `token`. nginx journalise `$uri` (sans la query string) | `grep ticket logs` → rien |
 | Mots de passe | HTTP | `crypto.scrypt` + sel aléatoire, comparaison avec `timingSafeEqual` | — |
 
@@ -346,18 +346,18 @@ Provisionné depuis `infra/grafana/` :
 ### 10.3 Scénario de charge (k6)
 
 `load/chat.js`, versionné dans le dépôt :
-- **montée** : 0 → 100 → 300 → 600 → 1000 utilisateurs virtuels, par paliers de 1 min ;
+- **montée** : 0 → 100 → 300 → 600 → 1000 utilisateurs virtuels (20 s de montée, 30 s de palier) ;
 - **chaque utilisateur** : obtient un ticket, se connecte, rejoint `colline`, envoie 1 message toutes les 2 s avec `sentAt` dans le texte, et mesure le temps jusqu'à la réception de **son propre message** diffusé ;
 - **résultats** : p50, p95, débit (messages/s), et le **nombre de connexions à partir duquel le p95 dépasse 200 ms** (seuil de dégradation).
 
-**Protocole de mesure** (à écrire dans le dossier) : machine (CPU, RAM), k6 sur la même machine ou non, durée, paliers, point d'horodatage, 3 exécutions et médiane.
+**Protocole de mesure** : voir [`PHASE5.md`](PHASE5.md) §1 (machine, durée, paliers, point d'horodatage).
 
-> Pour la charge, le quota par IP doit être relevé (toutes les connexions k6 viennent de la même IP) : variable `MAX_CONN_PER_IP=5000` dans `docker-compose.load.yml`.
+> Pour la charge, le quota par IP doit être relevé (toutes les connexions k6 viennent de la même IP) : `MAX_CONN_PER_IP=100000 docker compose up -d`.
 
 ### 10.4 Optimisation mesurée avant / après
 Choix : **regroupement des diffusions** (*batching*, variable `BATCH_MS`). Au lieu d'un `ws.send` par message, chaque instance accumule pendant 20 ms les messages destinés à un même client, puis les envoie en une seule trame (un tableau JSON).
 
-**Résultats mesurés** (détail et protocole dans `load/RESULTATS.md`) :
+**Résultats mesurés** (détail et protocole dans [`PHASE5.md`](PHASE5.md)) :
 
 | Indicateur | Sans regroupement | `BATCH_MS=20` |
 |-----------|------------------:|--------------:|
@@ -407,7 +407,8 @@ Les Télétubbies et leurs images officielles appartiennent à leur ayant droit 
 ```
 projet-fil-rouge/
 ├── README.md                  # sujet, scénario, lancement, démonstrations
-├── ARCHITECTURE.md            # ce document
+├── rendus/                    # TOUS les livrables : PHASE1 à PHASE6, dossier, vidéo, soutenance…
+│   └── ARCHITECTURE.md        # ce document
 ├── USAGE-IA.md                # journal d'usage de l'IA
 ├── docker-compose.yml         # web (nginx + Vue), api-1, api-2, redis, prometheus, grafana, k6 (profil « charge »)
 ├── server/
@@ -441,7 +442,7 @@ projet-fil-rouge/
 │                              # TubbyAvatar, ConnectionSun, SkyBackground, ToastStack
 ├── load/
 │   ├── chat.js                # scénario k6
-│   └── RESULTATS.md           # protocole, chiffres, avant/après
+│   └── resultats/             # exports JSON de k6 (non versionnés)
 └── infra/
     ├── prometheus.yml
     └── grafana/               # source de données + tableau de bord provisionnés
@@ -460,12 +461,12 @@ Application sur http://localhost:8090 · Grafana sur http://localhost:3001 · Pr
 
 ## 14. Planning par phase et répartition
 
-Rôles proposés pour 4 personnes. Chacun doit pouvoir **expliquer à l'oral** tout le code qu'il a écrit.
+Rôles proposés au départ ; à la soutenance, Evan Louis présente l'architecture, Alix Pratabuy la démonstration, Yoann Goumarre les performances (voir [`SOUTENANCE.md`](SOUTENANCE.md)). Chacun doit pouvoir **expliquer à l'oral** tout le code qu'il a écrit.
 
 | Rôle | Responsabilités |
 |------|-----------------|
 | **Back temps réel** | `ws/`, contrat de messages, handlers, validation |
-| **Front** | Vue, `useSocket`, stores, thème Télétubbies |
+| **Front** | Vue, `socket.js`, `store.js`, thème Télétubbies |
 | **Infra et échelle** | docker compose, nginx, Redis (broker, streams, présence) |
 | **Qualité et mesures** | tests de sécurité, k6, Prometheus et Grafana, dossier |
 

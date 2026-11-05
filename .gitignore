@@ -2,3 +2,5 @@ node_modules/
 dist/
 load/resultats/*.json
 .env
+rendus/package-lock.json
+rendus/.dossier.html

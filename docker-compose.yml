@@ -16,6 +16,7 @@ x-api: &api
     BATCH_MS: ${BATCH_MS:-0}
     MAX_CONN_PER_IP: ${MAX_CONN_PER_IP:-50}
     ADMIN_USERS: admin
+    LOG_MESSAGES: ${LOG_MESSAGES:-0}   # 1 = journaliser chaque trame WebSocket (démo)
 
 services:
   web:
